@@ -1,5 +1,5 @@
 import 'package:demo_bloc/core/colors.dart';
-import 'package:demo_bloc/screens/game_screen.dart';
+import 'package:demo_bloc/screens/game/game_screen.dart';
 import 'package:flutter/material.dart';
 
 void main() => runApp(MyApp());

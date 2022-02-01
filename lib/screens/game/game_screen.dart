@@ -1,6 +1,7 @@
 import 'package:demo_bloc/core/colors.dart';
 import 'package:demo_bloc/core/constants/game_constants.dart';
 import 'package:demo_bloc/helpers/padding.dart';
+import 'package:demo_bloc/model/box_model.dart';
 import 'package:flutter/material.dart';
 
 class GameScreen extends StatefulWidget {
@@ -12,6 +13,13 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> {
   Offset offset = Offset.zero;
+  List<List<BoxModel>> boxModels = [];
+  BoxModel onModel = BoxModel();
+  @override
+  void initState() {
+    super.initState();
+    boxModels = List.generate(5, (index) => List.generate(5, (index) => BoxModel()));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +34,7 @@ class _GameScreenState extends State<GameScreen> {
             margin: PagePadding.all(),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(5),
-              color: _isOnBox(i, j) ? Colors.red.withOpacity(0.2) : kLightBaliColor.withOpacity(0.2),
+              color: boxModels[i][j].isOn ? Colors.red : kLightBaliColor.withOpacity(0.2),
             ),
           ),
         );
@@ -56,10 +64,16 @@ class _GameScreenState extends State<GameScreen> {
             left: offset.dx,
             top: offset.dy,
             child: GestureDetector(
-              onPanStart: ((details) => offset = Offset(offset.dx, offset.dy - 60)),
+              onPanStart: ((details) => offset = Offset(offset.dx, offset.dy)),
               onPanEnd: (details) {
                 // isDragged = false;
-                print(findBoxFromCoordinates(offset));
+                print(_findBox(offset));
+                if (_findBox(offset)[0] != -1) {
+                  final model = boxModels[_findBox(offset)[0]][_findBox(offset)[1]];
+                  if (!model.isOn) {
+                    model.isOn = true;
+                  }
+                }
                 setState(() {});
               },
               onPanUpdate: (details) {
@@ -89,7 +103,7 @@ class _GameScreenState extends State<GameScreen> {
         offset.dy <= _positionBox(col, row).height + padding;
   }
 
-  List findBoxFromCoordinates(Offset position) {
+  List _findBox(Offset position) {
     const double padding = kBoxSize / 2 - 1;
     for (var i = 0; i < 5; i++) {
       for (var j = 0; j < 5; j++) {

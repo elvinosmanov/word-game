@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:demo_bloc/core/colors.dart';
 import 'package:demo_bloc/core/constants/game_constants.dart';
 import 'package:demo_bloc/helpers/padding.dart';
@@ -14,11 +16,12 @@ class GameScreen extends StatefulWidget {
 class _GameScreenState extends State<GameScreen> {
   Offset offset = Offset.zero;
   List<List<BoxModel>> boxModels = [];
-  BoxModel onModel = BoxModel();
+  List<int?> previousOn = [];
   @override
   void initState() {
     super.initState();
-    boxModels = List.generate(5, (index) => List.generate(5, (index) => BoxModel()));
+    boxModels = List.generate(5,
+        (index) => List.generate(5, (index) => BoxModel(color: kLightBaliColor.withOpacity(0.2))));
   }
 
   @override
@@ -34,8 +37,13 @@ class _GameScreenState extends State<GameScreen> {
             margin: PagePadding.all(),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(5),
-              color: boxModels[i][j].isOn ? Colors.red : kLightBaliColor.withOpacity(0.2),
+              color: boxModels[i][j].isOn ? Colors.blue : boxModels[i][j].color,
             ),
+            child: Center(
+                child: Text(
+              boxModels[i][j].letter,
+              style: TextStyle(color: Colors.white, fontSize: 24),
+            )),
           ),
         );
       }
@@ -70,15 +78,28 @@ class _GameScreenState extends State<GameScreen> {
                 print(_findBox(offset));
                 if (_findBox(offset)[0] != -1) {
                   final model = boxModels[_findBox(offset)[0]][_findBox(offset)[1]];
-                  if (!model.isOn) {
-                    model.isOn = true;
-                  }
+                  model.color = Colors.blue;
+                  model.letter = getRandom();
                 }
                 setState(() {});
               },
               onPanUpdate: (details) {
                 setState(() {
                   offset = Offset(offset.dx + details.delta.dx, offset.dy + details.delta.dy);
+                  if (_findBox(offset)[0] != -1) {
+                    if (previousOn.isNotEmpty) {
+                      boxModels[previousOn[0]!][previousOn[1]!].isOn = false;
+                    }
+                    final model = boxModels[_findBox(offset)[0]][_findBox(offset)[1]];
+                    previousOn = [_findBox(offset)[0], _findBox(offset)[1]];
+                    if (!model.isOn) {
+                      model.isOn = true;
+                    }
+                  } else {
+                    if (previousOn.isNotEmpty) {
+                      boxModels[previousOn[0]!][previousOn[1]!].isOn = false;
+                    }
+                  }
                 });
               },
               child: Container(width: 60, height: 60, color: Colors.blue),
@@ -90,7 +111,8 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Size _positionBox(int col, int row) {
-    final dx = MediaQuery.of(context).size.width / 2 - kBoxSize / 2 - (kBoxSize + kDistanceBetweenBox) * 2;
+    final dx =
+        MediaQuery.of(context).size.width / 2 - kBoxSize / 2 - (kBoxSize + kDistanceBetweenBox) * 2;
     final dy = MediaQuery.of(context).size.height / 2 - (kBoxSize - 2) * 3;
     return Size(dx + row * (kBoxSize + kDistanceBetweenBox), dy + col * (kBoxSize - 2));
   }
@@ -113,5 +135,11 @@ class _GameScreenState extends State<GameScreen> {
       }
     }
     return [-1, -1];
+  }
+
+  String getRandom() {
+    const ch = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    Random r = Random();
+    return String.fromCharCodes(Iterable.generate(1, (_) => ch.codeUnitAt(r.nextInt(ch.length))));
   }
 }

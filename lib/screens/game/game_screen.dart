@@ -1,10 +1,9 @@
 import 'dart:math';
 
-import 'package:demo_bloc/core/colors.dart';
 import 'package:demo_bloc/core/constants/game_constants.dart';
-import 'package:demo_bloc/helpers/padding.dart';
-import 'package:demo_bloc/model/box_model.dart';
+import 'package:demo_bloc/screens/game/game_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({Key? key}) : super(key: key);
@@ -14,145 +13,122 @@ class GameScreen extends StatefulWidget {
 }
 
 class _GameScreenState extends State<GameScreen> {
-  Offset offset = Offset.zero;
-  List<List<BoxModel>> boxModels = [];
   List<int?> previousOn = [];
   double choosenBoxSize = 70;
-  late List<String> randomCharacters;
+  late GameProvider provider;
+  bool firstTime = true;
   @override
   void initState() {
     super.initState();
-    randomCharacters = getRandom(length: 28).split('');
-    boxModels = List.generate(
-        kRowNumber, (index) => List.generate(kColNumber, (index) => BoxModel(color: kLightBaliColor.withOpacity(0.2))));
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    offset = Offset(MediaQuery.of(context).size.width / 2 - 35, MediaQuery.of(context).size.height / 2 + 187);
   }
 
   @override
   Widget build(BuildContext context) {
-    final children = <List<Widget>>[];
-    for (var i = 0; i < kRowNumber; i++) {
-      List<Widget> col = [];
-      for (var j = 0; j < kColNumber; j++) {
-        col.add(
-          Container(
-            width: 60,
-            height: 60,
-            margin: PagePadding.all(),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(5),
-              color: boxModels[i][j].isOn ? Colors.blue : boxModels[i][j].color,
+    provider = context.watch<GameProvider>();
+    provider.height = MediaQuery.of(context).size.height;
+    provider.width = MediaQuery.of(context).size.width;
+    provider.reCreateBoxes();
+    if (firstTime) {
+      provider.randomCharacters = getRandom(length: 28).split('');
+      Future.delayed(
+        const Duration(microseconds: 1),
+        () {
+          provider.offset = Offset(provider.width / 2 - 35, provider.height / 2 + 187);
+        },
+      );
+
+      firstTime = false;
+    }
+    return Scaffold(
+      appBar: AppBar(),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: provider.rowChildren,
             ),
-            child: Center(
-                child: Text(
-              boxModels[i][j].letter,
-              style: const TextStyle(color: Colors.white, fontSize: 24),
-            )),
           ),
-        );
-      }
-      children.add(col);
-    }
-    final rowChildren = <Widget>[];
-    for (var i = 0; i < kRowNumber; i++) {
-      rowChildren.add(Row(
-        mainAxisSize: MainAxisSize.min,
-        children: children[i],
-      ));
-    }
-
-    
-        return Scaffold(
-          appBar: AppBar(),
-          body: Stack(
-            fit: StackFit.expand,
-            children: [
-              Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: rowChildren,
-                ),
+          Positioned(
+            left: provider.offset.dx,
+            top: provider.offset.dy,
+            child: GestureDetector(
+              onPanStart: ((details) =>
+                  provider.offset = Offset(provider.offset.dx, provider.offset.dy)),
+              onPanEnd: (details) {
+                // isDragged = false;
+                provider.onPanEnd();
+                provider.offset = Offset(provider.width / 2 - 35, provider.height / 2 + 187);
+              },
+              onPanUpdate: (details) {
+                choosenBoxSize = 60;
+                provider.offset = Offset(
+                    provider.offset.dx + details.delta.dx, provider.offset.dy + details.delta.dy);
+                if (_findBox(provider.offset)[0] != -1) {
+                  if (previousOn.isNotEmpty) {
+                    provider.boxModels[previousOn[0]!][previousOn[1]!].isOn = false;
+                  }
+                  final model = provider.boxModels[_findBox(provider.offset)[0]]
+                      [_findBox(provider.offset)[1]];
+                  previousOn = [_findBox(provider.offset)[0], _findBox(provider.offset)[1]];
+                  if (!model.isOn) {
+                    model.isOn = true;
+                  }
+                } else {
+                  if (previousOn.isNotEmpty) {
+                    provider.boxModels[previousOn[0]!][previousOn[1]!].isOn = false;
+                  }
+                }
+              },
+              child: Container(
+                width: choosenBoxSize,
+                height: choosenBoxSize,
+                decoration:
+                    BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(5)),
+                child: Center(
+                    child: Text(
+                  provider.randomCharacters[provider.counter],
+                  style: const TextStyle(color: Colors.white, fontSize: 24),
+                )),
               ),
-              Positioned(
-                left: offset.dx,
-                top: offset.dy,
-                child: GestureDetector(
-                  onPanStart: ((details) => offset = Offset(offset.dx, offset.dy)),
-                  onPanEnd: (details) {
-                    // isDragged = false;
-                    if (_findBox(offset)[0] != -1) {
-                      final model = boxModels[_findBox(offset)[0]][_findBox(offset)[1]];
-                      model.color = Colors.blue;
-                      model.letter = getRandom();
-                    }
-                    offset = Offset(
-                        MediaQuery.of(context).size.width / 2 - 35, MediaQuery.of(context).size.height / 2 + 187);
-                    choosenBoxSize = 70;
-                    setState(() {});
-                  },
-                  onPanUpdate: (details) {
-                    setState(() {
-                      choosenBoxSize = 60;
-                      offset = Offset(offset.dx + details.delta.dx, offset.dy + details.delta.dy);
-                      if (_findBox(offset)[0] != -1) {
-                        if (previousOn.isNotEmpty) {
-                          boxModels[previousOn[0]!][previousOn[1]!].isOn = false;
-                        }
-                        final model = boxModels[_findBox(offset)[0]][_findBox(offset)[1]];
-                        previousOn = [_findBox(offset)[0], _findBox(offset)[1]];
-                        if (!model.isOn) {
-                          model.isOn = true;
-                        }
-                      } else {
-                        if (previousOn.isNotEmpty) {
-                          boxModels[previousOn[0]!][previousOn[1]!].isOn = false;
-                        }
-                      }
-                    });
-                  },
-                  child: Container(
-                    width: choosenBoxSize,
-                    height: choosenBoxSize,
-                    decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(5)),
-                  ),
-                ),
-              ),
-              // Positioned(
-              //   top: MediaQuery.of(context).size.height / 2 + 187,
-              //   left: MediaQuery.of(context).size.width / 2 - 35,
-              //   child: Container(
-              //     width: 70,
-              //     height: 70,
-              //     decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(5)),
-              //   ),
-              // ),
-            ],
+            ),
           ),
-        );
-      }
-
+          // Positioned(
+          //   top: MediaQuery.of(context).size.height / 2 + 187,
+          //   left: MediaQuery.of(context).size.width / 2 - 35,
+          //   child: Container(
+          //     width: 70,
+          //     height: 70,
+          //     decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(5)),
+          //   ),
+          // ),
+        ],
+      ),
+    );
+  }
 
   Size _positionBox(int col, int row) {
-    final dx = MediaQuery.of(context).size.width / 2 - kBoxSize / 2 - (kBoxSize + kDistanceBetweenBox) * 2;
+    final dx =
+        MediaQuery.of(context).size.width / 2 - kBoxSize / 2 - (kBoxSize + kDistanceBetweenBox) * 2;
     final dy = MediaQuery.of(context).size.height / 2 - (kBoxSize - 2) * 3;
     return Size(dx + row * (kBoxSize + kDistanceBetweenBox), dy + col * (kBoxSize - 2));
   }
 
   bool _isOnBox(int col, int row) {
-    const double padding = kBoxSize / 2 - 1;
-    return offset.dx >= _positionBox(col, row).width - padding &&
-        offset.dx <= _positionBox(col, row).width + padding &&
-        offset.dy >= _positionBox(col, row).height - padding &&
-        offset.dy <= _positionBox(col, row).height + padding;
+    const double padding = kBoxSize / 2 + 4;
+    return provider.offset.dx >= _positionBox(col, row).width - padding &&
+        provider.offset.dx <= _positionBox(col, row).width + padding &&
+        provider.offset.dy >= _positionBox(col, row).height - padding &&
+        provider.offset.dy <= _positionBox(col, row).height + padding;
   }
 
   List _findBox(Offset position) {
-    const double padding = kBoxSize / 2 - 1;
     for (var i = 0; i < kRowNumber; i++) {
       for (var j = 0; j < kColNumber; j++) {
         if (_isOnBox(i, j)) {
@@ -164,8 +140,9 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   String getRandom({int? length}) {
-    const ch = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const ch = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ???';
     Random r = Random();
-    return String.fromCharCodes(Iterable.generate(length ?? 1, (_) => ch.codeUnitAt(r.nextInt(ch.length))));
+    return String.fromCharCodes(
+        Iterable.generate(length ?? 1, (_) => ch.codeUnitAt(r.nextInt(ch.length))));
   }
 }

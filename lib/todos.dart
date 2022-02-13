@@ -1,0 +1,1 @@
+//TODO: yalnizca deyisen boxun rengini deyis ve her bir boxModelleri yoxlama

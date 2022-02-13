@@ -1,17 +1,42 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../core/colors.dart';
 import '../../core/constants/game_constants.dart';
 import '../../helpers/padding.dart';
 import '../../model/box_model.dart';
 
 class GameProvider with ChangeNotifier {
-  Offset offset = Offset.zero;
-  List<List<BoxModel>> boxModels = [];
+  Offset _offset = Offset.zero;
+
+  Offset get offset => _offset;
+  double height = 0.0;
+  double width = 0.0;
+
+  set offset(Offset offset) {
+    _offset = offset;
+    notifyListeners();
+  }
+
+  int counter = 0;
+
+  List<List<BoxModel>> _boxModels = List.generate(
+      kRowNumber,
+      (index) =>
+          List.generate(kColNumber, (index) => BoxModel(color: kLightBaliColor.withOpacity(0.2))));
+
+  List<List<BoxModel>> get boxModels => _boxModels;
+
+  set boxModels(List<List<BoxModel>> boxModels) {
+    _boxModels = boxModels;
+    // notifyListeners();
+  }
+
   List<int?> previousOn = [];
   double choosenBoxSize = 70;
-  late List<String> randomCharacters;
+  List<String> randomCharacters = [];
   List<Widget> rowChildren = <Widget>[];
+
   void reCreateBoxes() {
     final children = <List<Widget>>[];
     for (var i = 0; i < kRowNumber; i++) {
@@ -24,7 +49,7 @@ class GameProvider with ChangeNotifier {
             margin: PagePadding.all(),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(5),
-              color: boxModels[i][j].isOn ? Colors.blue : boxModels[i][j].color,
+              color: boxModels[i][j].isOn ? Colors.grey : boxModels[i][j].color,
             ),
             child: Center(
                 child: Text(
@@ -36,12 +61,52 @@ class GameProvider with ChangeNotifier {
       }
       children.add(col);
     }
-    rowChildren = <Widget>[];
+    final rowChildren2 = <Widget>[];
     for (var i = 0; i < kRowNumber; i++) {
-      rowChildren.add(Row(
+      rowChildren2.add(Row(
         mainAxisSize: MainAxisSize.min,
         children: children[i],
       ));
     }
+    rowChildren = rowChildren2;
+  }
+
+  onPanEnd() {
+    if (_findBox(offset)[0] != -1) {
+      final model = boxModels[_findBox(offset)[0]][_findBox(offset)[1]];
+      if (model.color != Colors.grey) {
+        model.color = Colors.grey;
+        model.letter = randomCharacters[counter];
+        counter += 1;
+      }
+    }
+
+    choosenBoxSize = 70;
+  }
+
+  List _findBox(Offset position) {
+    for (var i = 0; i < kRowNumber; i++) {
+      for (var j = 0; j < kColNumber; j++) {
+        if (_isOnBox(i, j)) {
+          return [i, j];
+        }
+      }
+    }
+    return [-1, -1];
+  }
+
+  bool _isOnBox(int col, int row) {
+    const double padding = kBoxSize / 2 + 4;
+    return offset.dx >= _positionBox(col, row).width - padding &&
+        offset.dx <= _positionBox(col, row).width + padding &&
+        offset.dy >= _positionBox(col, row).height - padding &&
+        offset.dy <= _positionBox(col, row).height + padding;
+  }
+
+  Size _positionBox(int col, int row) {
+    final dx =
+        width / 2 - kBoxSize / 2 - (kBoxSize + kDistanceBetweenBox) * 2;
+    final dy = height / 2 - (kBoxSize - 2) * 3;
+    return Size(dx + row * (kBoxSize + kDistanceBetweenBox), dy + col * (kBoxSize - 2));
   }
 }

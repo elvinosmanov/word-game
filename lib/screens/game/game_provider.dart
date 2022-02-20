@@ -1,7 +1,6 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../core/colors.dart';
 import '../../core/constants/game_constants.dart';
@@ -14,31 +13,23 @@ class GameProvider with ChangeNotifier {
   Offset get offset => _offset;
   double height = 0.0;
   double width = 0.0;
+  int counter = 0;
 
   set offset(Offset offset) {
     _offset = offset;
     notifyListeners();
   }
 
-  int counter = 0;
 
-  List<List<BoxModel>> _boxModels = List.generate(
+  List<List<BoxModel>> boxModels = List.generate(
       kRowNumber,
       (index) =>
           List.generate(kColNumber, (index) => BoxModel(color: kLightBaliColor.withOpacity(0.2))));
 
-  List<List<BoxModel>> get boxModels => _boxModels;
-
-  set boxModels(List<List<BoxModel>> boxModels) {
-    _boxModels = boxModels;
-    // notifyListeners();
-  }
-
   List<int?> previousOn = [];
+
   double _choosenBoxSize = 70;
-
   double get choosenBoxSize => _choosenBoxSize;
-
   set choosenBoxSize(double choosenBoxSize) {
     _choosenBoxSize = choosenBoxSize;
     notifyListeners();

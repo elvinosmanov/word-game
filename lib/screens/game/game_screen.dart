@@ -36,6 +36,12 @@ class _GameScreenState extends State<GameScreen> {
               children: provider.rowChildren,
             ),
           ),
+          for (var i = 0; i < 3; i++)
+            Positioned(
+              left: i * 10,
+              top: i * 10,
+              child: Text('salam'),
+            ),
           Positioned(
             left: provider.offset.dx,
             top: provider.offset.dy,
